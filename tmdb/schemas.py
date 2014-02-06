@@ -1,7 +1,6 @@
 from .api import API, class_from_schema
 
 
-movie_params = {"required": {"id": int}, "optional": {"language": unicode}}
 movie_schema = {
     "adult": bool,
     "backdrop_path": unicode,
@@ -27,7 +26,3 @@ movie_schema = {
     "vote_average": float,
     "vote_count": int,
 }
-
-Movie = class_from_schema("Movie", "https://api.themoviedb.org/3/movie/{id:d}", movie_params, movie_schema)
-
-API.register("movie", Movie)

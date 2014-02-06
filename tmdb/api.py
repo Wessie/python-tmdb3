@@ -70,7 +70,25 @@ class AttributeDict(dict):
 
 
 def create_api_method(api, name, cls):
-    def call(**params):
+    def call(*positional, **params):
+        if "order" not in cls.params and positional:
+            raise ValueError("Function '%s' does not take positional arguments" % name)
+        elif "order" in cls.params and positional:
+            # TODO, accept positional arguments
+            pass
+
+        # Check for parameters we don't know
+        for key in params:
+            if key not in cls.params_all:
+                raise ValueError("Function '%s' does not take argument '%s'" % (name, key))
+
+        # Check for all required arguments
+        for key in cls.params_required:
+            if key not in params:
+                raise ValueError("Function '%s' missing required argument '%s'" % (name, key))
+
+
+        # We've checked out all the validation
         url = cls.url.format(**params)
 
         params['api_key'] = api.key
@@ -83,6 +101,7 @@ def create_api_method(api, name, cls):
 
         res = cls(result.json())
 
+        # Add any defaults for missing keys
         recursive_defaults(cls.schema, res)
 
         return res
@@ -99,7 +118,18 @@ def class_from_schema(name, url, params, schema):
     The class will have the name passed in, and have the
     other arguments as attributes.
     """
-    return type(name, (AttributeDict,), {"url": url, "schema": schema, "params": params})
+    all = {}
+    all.update(params.get("required", {}))
+    all.update(params.get("optional", {}))
+
+
+    return type(name, (AttributeDict,), {
+        "url": url,
+        "schema": schema,
+        "params": params,
+        "params_all": all,
+        "params_required": params.get("required", {})
+    })
 
 
 def recursive_defaults(src, dst):
