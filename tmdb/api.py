@@ -23,29 +23,32 @@ class API(object):
         setattr(cls, name, create_api_method(name, schema_cls))
 
 
-class AttributeDict(dict):
+class ResultDict(dict):
     """
     Simple dictionary subclass that supports attribute
     access to the dictionary alongside normal access.
     """
+    schema = {}
     def __init__(self, dct):
-        self.recursive_instantion(dct)
+        recursive_defaults(self.schema, dct)
 
-        super(AttributeDict, self).__init__(dct)
+        super(ResultDict, self).__init__(dct)
+
+        self.recursive_instantion()
 
     def __getattr__(self, key):
         try:
             return self[key]
         except KeyError:
-            return super(AttributeDict, self).__getattr__(key)
+            return super(ResultDict, self).__getattr__(key)
 
     def __setattr__(self, key, value):
-        super(AttributeDict, self).__setattr__(key, value)
+        self[key] = value
 
     def __delattr__(self, key):
         del self[key]
 
-    def recursive_instantion(self, dct):
+    def recursive_instantion(self):
         """
         Recursively check if there are any other dicts
         nested in our `self`. Make all we find also an
@@ -53,13 +56,13 @@ class AttributeDict(dict):
 
         note: This only checks recursively in dicts and lists
         """
-        for key, value in dct.items():
+        for key, value in self.items():
             if isinstance(value, dict):
-                dct[key] = AttributeDict(value)
+                self[key] = ResultDict(value)
             elif isinstance(value, list):
                 for i, item in enumerate(value):
                     if isinstance(item, dict):
-                        value[i] = AttributeDict(item)
+                        value[i] = ResultDict(item)
 
 
 def create_api_method(name, cls):
@@ -129,7 +132,10 @@ def class_from_schema(name, url, params, schema):
     all.update(params.get("required", {}))
     all.update(params.get("optional", {}))
 
-    return type(name, (AttributeDict,), {
+    if isinstance(name, unicode):
+        name = name.encode("utf8")
+
+    return type(name, (ResultDict,), {
         "url": url,
         "schema": schema,
         "params": params,
@@ -149,6 +155,11 @@ def create_endpoint(url, class_name, method_name, schema, parameters):
 
 
 def recursive_defaults(src, dst):
+    """
+    Recursively goes through keys in src and checks if `key in dst` is True.
+    If the key does not exist, src[key] is called to provide a default
+    value.
+    """
     for key, value in src.iteritems():
         dst_value = dst.get(key)
 
