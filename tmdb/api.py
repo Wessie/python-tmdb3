@@ -6,8 +6,7 @@ class TMDBError(Exception):
 
 
 class API(object):
-    registar = {}
-
+    base_url = "https://api.themoviedb.org"
     def __init__(self, api_key):
         super(API, self).__init__()
 
@@ -15,19 +14,13 @@ class API(object):
 
     @classmethod
     def register(cls, name, schema_cls):
-        cls.registar[name] = schema_cls
+        """
+        Creates a method on the API class with name `name`.
 
-    def _call(self, name):
-        schema = self.registar.get(name)
-
-        if not schema:
-            raise KeyError("Unsupported API method '%s'" % name)
-
-        # TODO: Make this only be created once
-        return create_api_method(self, name, schema)
-
-    def __getattr__(self, key):
-        return self._call(key)
+        :param name: name of the method, will overwrite if already exists
+        :param schema_cls: class as returned by `class_from_schema`.
+        """
+        setattr(cls, name, create_api_method(name, schema_cls))
 
 
 class AttributeDict(dict):
@@ -44,7 +37,7 @@ class AttributeDict(dict):
         try:
             return self[key]
         except KeyError:
-            return super(State, self).__getattr__(key)
+            return super(AttributeDict, self).__getattr__(key)
 
     def __setattr__(self, key, value):
         super(AttributeDict, self).__setattr__(key, value)
@@ -69,13 +62,23 @@ class AttributeDict(dict):
                         value[i] = AttributeDict(item)
 
 
-def create_api_method(api, name, cls):
-    def call(*positional, **params):
-        if "order" not in cls.params and positional:
-            raise ValueError("Function '%s' does not take positional arguments" % name)
-        elif "order" in cls.params and positional:
-            # TODO, accept positional arguments
-            pass
+def create_api_method(name, cls):
+    """
+    Creates a method for the API class based on the class passed in.
+
+    The method will have name `name` and will return values of type `cls`.
+    """
+    def call(api, *positional, **params):
+        positional_order = cls.params.get("order", [])
+
+        if len(positional) > len(positional_order):
+            raise ValueError(
+                "Got too many positional arguments, got %d expected "
+                "maximum of %d" % (len(positional), len(positional_order))
+            )
+
+        for key, value in zip(positional_order, positional):
+            params[key] = value
 
         # Check for parameters we don't know
         for key in params:
@@ -90,6 +93,7 @@ def create_api_method(api, name, cls):
 
         # We've checked out all the validation
         url = cls.url.format(**params)
+        url = api.base_url + url
 
         params['api_key'] = api.key
 
