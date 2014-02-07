@@ -69,6 +69,8 @@ def create_api_method(name, cls):
     The method will have name `name` and will return values of type `cls`.
     """
     def call(api, *positional, **params):
+        # Check for positional arguments and convert them to key arguments by
+        # use of `params.order` or raise exception if incorrect.
         positional_order = cls.params.get("order", [])
 
         if len(positional) > len(positional_order):
@@ -122,10 +124,10 @@ def class_from_schema(name, url, params, schema):
     The class will have the name passed in, and have the
     other arguments as attributes.
     """
+    # Create a dict of both parameters, for easy access later
     all = {}
     all.update(params.get("required", {}))
     all.update(params.get("optional", {}))
-
 
     return type(name, (AttributeDict,), {
         "url": url,
@@ -134,6 +136,16 @@ def class_from_schema(name, url, params, schema):
         "params_all": all,
         "params_required": params.get("required", {})
     })
+
+
+def create_endpoint(url, class_name, method_name, schema, parameters):
+    if isinstance(method_name, unicode):
+        method_name = method_name.encode("utf8")
+    if isinstance(class_name, unicode):
+        class_name = class_name.encode("utf8")
+
+    cls = class_from_schema(class_name, url, parameters, schema)
+    API.register(method_name, cls)
 
 
 def recursive_defaults(src, dst):
