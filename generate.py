@@ -28,11 +28,14 @@ except NameError:
     str = str
 """
 
-param_template = """
-    :param {type:s} {name:s}: {description:s}
+param_header = """
 """
 
-doc_template = """For more information on return value see official API docs {permalink:s}
+param_template = """
+:param {type:s} {name:s}: {description:s}
+"""
+
+doc_template = """For more information on return value see `official API docs <{permalink:s}>`_
 
 For information about possible exceptions see :mod:`tmdb.errors` documentation.
 
@@ -84,10 +87,12 @@ def generate_docstring(endpoint, permalink):
 
     # only add them if we have any
     if doc_req_param:
-        doc_req_param = "Required Parameters\n" + doc_req_param
+        doc_req_param = "**Required**\n\n" + doc_req_param
     if doc_opt_param:
-        doc_opt_param = "Optional Parameters\n" + doc_opt_param
+        doc_opt_param = "**Optional**\n\n" + doc_opt_param
 
+    if doc_req_param or doc_opt_param:
+        doc_req_param = param_header + doc_req_param
 
     # Generate a pretty printed example result
     buffer = StringIO()
@@ -151,7 +156,7 @@ def guess_type(name):
     """
     Guess the type by the parameter name, defaults to unicode
     """
-    if name in ("id", "page"):
+    if name in ("id", "page") or name == "movie_id":
         return Type(int)
     elif "number" in name:
         return Type(int)
