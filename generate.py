@@ -32,7 +32,9 @@ param_template = """
     :param {type:s} {name:s}: {description:s}
 """
 
-doc_template = """For more information see official API docs {permalink:s}
+doc_template = """For more information on return value see official API docs {permalink:s}
+
+For information about possible exceptions see :mod:`tmdb.errors` documentation.
 
 {required_parameters:s}
 
@@ -94,6 +96,8 @@ def generate_docstring(endpoint, permalink):
 
     example = buffer.getvalue()
 
+    # Fix an indentation problem with pprint and our example
+    example = example.replace("\n", "\n    ")
 
     return doc_template.format(
         permalink=permalink,
