@@ -2,6 +2,9 @@ from __future__ import unicode_literals
 import requests
 
 from . import mani
+from . import errors
+from .util import AttributeDict
+
 
 # py2/3 compat
 try:
@@ -10,10 +13,6 @@ try:
 except NameError:
     PY3 = True
     str = str
-
-
-class TMDBError(Exception):
-    pass
 
 
 class API(object):
@@ -34,51 +33,12 @@ class API(object):
         setattr(cls, name, create_api_method(name, schema_cls, docs=docs))
 
 
-class BaseAPI(object):
+class BaseResult(object):
     schema = {}
     def __init__(self, dct):
         dct = mani.apply(dct, self.schema)
 
-        super(BaseAPI, self).__init__(dct)
-
-
-class ResultDict(dict):
-    """
-    Simple dictionary subclass that supports attribute
-    access to the dictionary alongside normal access.
-    """
-    def __init__(self, dct):
-        super(ResultDict, self).__init__(dct)
-
-        self.recursive_instantion()
-
-    def __getattr__(self, key):
-        try:
-            return self[key]
-        except KeyError:
-            return super(ResultDict, self).__getattr__(key)
-
-    def __setattr__(self, key, value):
-        self[key] = value
-
-    def __delattr__(self, key):
-        del self[key]
-
-    def recursive_instantion(self):
-        """
-        Recursively check if there are any other dicts
-        nested in our `self`. Make all we find also an
-        `AttributeDict`.
-
-        note: This only checks recursively in dicts and lists
-        """
-        for key, value in self.items():
-            if isinstance(value, dict):
-                self[key] = ResultDict(value)
-            elif isinstance(value, list):
-                for i, item in enumerate(value):
-                    if isinstance(item, dict):
-                        value[i] = ResultDict(item)
+        super(BaseResult, self).__init__(dct)
 
 
 def create_api_method(name, cls, docs=""):
@@ -120,13 +80,46 @@ def create_api_method(name, cls, docs=""):
 
         try:
             result = requests.get(url, params=params)
-            result.raise_for_status()
-        except requests.exceptions.RequestException as err:
-            raise err
+        except requests.exceptions.ConnectionError as err:
+            raise errors.NetworkError({
+                "message": "Failed to connect to API, please check your connection",
+            })
+        except requests.exceptions.HTTPError as err:
+            raise errors.InvalidResponseError({
+                "message": "Response from API is an invalid HTTP response"
+            })
+        except requests.exceptions.Timeout as err:
+            raise errors.TimeoutError({
+                "message": "Request took too long to complete",
+            })
+        except requests.exceptions.TooManyRedirects as err:
+            raise errors.InvalidResponseError({
+                "message": "Response from API had too many redirects in chain",
+            })
 
-        res = cls(result.json())
+        # If all is well, get ourself out of here
+        if result.status_code == requests.codes.ok:
+            return cls(result.json())
 
-        return res
+        # Else... well that wasn't a success, clean up~
+        if result.status_code == requests.codes.not_found and result.content == b"<h1>Not Found</h1>":
+            raise errors.LibraryError({
+                "message": "Requested resource does not exist",
+            })
+        elif result.status_code == requests.codes.not_found:
+            raise errors.DoesNotExist(result.json())
+        elif result.status_code == requests.codes.unauthorized:
+            raise errors.APIKeyError(result.json())
+        elif result.status_code == requests.codes.unavailable:
+            raise errors.ThrottlingError(result.json())
+
+        # Not a clue, lack of documentation in the API docs
+        try:
+            message = result.json()
+        except:
+            message = {"message": "Unknown error: %s" % result.text}
+
+        raise errors.APIError(message)
 
     call.__name__ = name
     call.__doc__  = docs
@@ -149,7 +142,7 @@ def class_from_schema(name, url, params, schema):
     if isinstance(name, str) and not PY3:
         name = name.encode("utf8")
 
-    return type(name, (BaseAPI, ResultDict), {
+    return type(name, (BaseResult, AttributeDict), {
         "url": url,
         "schema": schema,
         "params": params,
