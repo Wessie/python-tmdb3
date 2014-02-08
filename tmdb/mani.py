@@ -26,7 +26,7 @@ def apply(obj, sch):
         obj = sch() if isinstance(sch, type) else type(sch)()
 
     if isinstance(sch, dict) and isinstance(obj, dict):
-        return dict((key: apply(obj.get(key, DEFAULT), value_sch)) for key, value_sch in sch.items())
+        return dict((key, apply(obj.get(key, DEFAULT), value_sch)) for key, value_sch in sch.items())
     elif isinstance(sch, list) and isinstance(obj, list):
         # Unbounded lists should loop forever in the applying case
         if isinstance(sch, UnboundedList):

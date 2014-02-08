@@ -6,7 +6,7 @@ from . import mani
 # py2/3 compat
 try:
     str = unicode
-    PY2 = False
+    PY3 = False
 except NameError:
     PY3 = True
     str = str
