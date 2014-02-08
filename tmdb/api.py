@@ -1,4 +1,13 @@
+from __future__ import unicode_literals
 import requests
+
+from . import mani
+
+# py2/3 compat
+try:
+    str = unicode
+except NameError:
+    str = str
 
 
 class TMDBError(Exception):
@@ -13,14 +22,22 @@ class API(object):
         self.key = api_key
 
     @classmethod
-    def register(cls, name, schema_cls):
+    def register(cls, name, schema_cls, docs=""):
         """
         Creates a method on the API class with name `name`.
 
         :param name: name of the method, will overwrite if already exists
         :param schema_cls: class as returned by `class_from_schema`.
         """
-        setattr(cls, name, create_api_method(name, schema_cls))
+        setattr(cls, name, create_api_method(name, schema_cls, docs=docs))
+
+
+class BaseAPI(object):
+    schema = {}
+    def __init__(self, dct):
+        dct = mani.apply(dct, self.schema)
+
+        super(BaseAPI, self).__init__(dct)
 
 
 class ResultDict(dict):
@@ -28,10 +45,7 @@ class ResultDict(dict):
     Simple dictionary subclass that supports attribute
     access to the dictionary alongside normal access.
     """
-    schema = {}
     def __init__(self, dct):
-        recursive_defaults(self.schema, dct)
-
         super(ResultDict, self).__init__(dct)
 
         self.recursive_instantion()
@@ -65,7 +79,7 @@ class ResultDict(dict):
                         value[i] = ResultDict(item)
 
 
-def create_api_method(name, cls):
+def create_api_method(name, cls, docs=""):
     """
     Creates a method for the API class based on the class passed in.
 
@@ -110,12 +124,10 @@ def create_api_method(name, cls):
 
         res = cls(result.json())
 
-        # Add any defaults for missing keys
-        recursive_defaults(cls.schema, res)
-
         return res
 
     call.__name__ = name
+    call.__doc__  = docs
 
     return call
 
@@ -135,7 +147,7 @@ def class_from_schema(name, url, params, schema):
     if isinstance(name, unicode):
         name = name.encode("utf8")
 
-    return type(name, (ResultDict,), {
+    return type(name, (BaseAPI, ResultDict), {
         "url": url,
         "schema": schema,
         "params": params,
@@ -144,14 +156,14 @@ def class_from_schema(name, url, params, schema):
     })
 
 
-def create_endpoint(url, class_name, method_name, schema, parameters):
+def create_endpoint(url, class_name, method_name, schema, parameters, docs=""):
     if isinstance(method_name, unicode):
         method_name = method_name.encode("utf8")
     if isinstance(class_name, unicode):
         class_name = class_name.encode("utf8")
 
     cls = class_from_schema(class_name, url, parameters, schema)
-    API.register(method_name, cls)
+    API.register(method_name, cls, docs=docs)
 
 
 def recursive_defaults(src, dst):
@@ -160,7 +172,7 @@ def recursive_defaults(src, dst):
     If the key does not exist, src[key] is called to provide a default
     value.
     """
-    for key, value in src.iteritems():
+    for key, value in src.items():
         dst_value = dst.get(key)
 
         if isinstance(dst_value, dict):
