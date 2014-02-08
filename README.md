@@ -9,21 +9,21 @@ Light Python API around TheMovieDB API version 3, which the documentation off is
 The following Python versions are supported: `Python 2.6`, `Python 2.7`, `Python 3.3+`, `PyPy`
 
 
-examples
+Examples
 ========
 
 Receive information by movie ID
-	```python
-	>>> import tmdb
-	>>> api = tmdb.API(your_api_key)
-	>>> api.movie(550)
-	```
+```python
+>>> import tmdb
+>>> api = tmdb.API(your_api_key)
+>>> api.movie(550)
+```
 
 Search for movies:
-	```python
-	>>> import tmdb
-	>>> api = tmdb.API(your_api_key)
-	>>> api.search_movie(query="Rocky")
-	```
+```python
+>>> import tmdb
+>>> api = tmdb.API(your_api_key)
+>>> api.search_movie(query="Rocky")
+```
 
 And many more, for all available methods see (for now as documentation isn't setup yet) `dir(tmdb.API)`.
