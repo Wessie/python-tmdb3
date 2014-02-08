@@ -6,7 +6,9 @@ from . import mani
 # py2/3 compat
 try:
     str = unicode
+    PY2 = False
 except NameError:
+    PY3 = True
     str = str
 
 
@@ -144,7 +146,7 @@ def class_from_schema(name, url, params, schema):
     all.update(params.get("required", {}))
     all.update(params.get("optional", {}))
 
-    if isinstance(name, str):
+    if isinstance(name, str) and not PY3:
         name = name.encode("utf8")
 
     return type(name, (BaseAPI, ResultDict), {
@@ -157,9 +159,9 @@ def class_from_schema(name, url, params, schema):
 
 
 def create_endpoint(url, class_name, method_name, schema, parameters, docs=""):
-    if isinstance(method_name, str):
+    if isinstance(method_name, str) and not PY3:
         method_name = method_name.encode("utf8")
-    if isinstance(class_name, str):
+    if isinstance(class_name, str) and not PY3:
         class_name = class_name.encode("utf8")
 
     cls = class_from_schema(class_name, url, parameters, schema)
