@@ -144,7 +144,7 @@ def class_from_schema(name, url, params, schema):
     all.update(params.get("required", {}))
     all.update(params.get("optional", {}))
 
-    if isinstance(name, unicode):
+    if isinstance(name, str):
         name = name.encode("utf8")
 
     return type(name, (BaseAPI, ResultDict), {
@@ -157,9 +157,9 @@ def class_from_schema(name, url, params, schema):
 
 
 def create_endpoint(url, class_name, method_name, schema, parameters, docs=""):
-    if isinstance(method_name, unicode):
+    if isinstance(method_name, str):
         method_name = method_name.encode("utf8")
-    if isinstance(class_name, unicode):
+    if isinstance(class_name, str):
         class_name = class_name.encode("utf8")
 
     cls = class_from_schema(class_name, url, parameters, schema)
