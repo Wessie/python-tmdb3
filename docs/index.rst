@@ -12,12 +12,5 @@ Contents:
    :maxdepth: 4
 
    tmdb
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   tmdb.errors
 

@@ -62,14 +62,14 @@ class APIError(TMDBError):
         message: Human readable error message returned by the TMDB API
         status: A status code returned by the TMDB API
     """
-    def __init__(self, json):
+    def __init__(self, message):
         # Edit response
-        if "status_message" in json:
-            json["message"] = json["status_message"]
+        if "status_message" in message:
+            message["message"] = message["status_message"]
             del json["status_message"]
-        if "status_code" in json:
-            json["status"] = json["status_code"]
-            del json["status_code"]
+        if "status_code" in message:
+            message["status"] = message["status_code"]
+            del message["status_code"]
 
         super(APIError, self).__init__(json)
 
