@@ -4,13 +4,19 @@ import tmdb
 
 import pytest
 
+try:
+    str = unicode
+except NameError:
+    str = str
+
+
 @pytest.fixture
 def schema():
     return {
         "id": int,
         "test": list,
-        "string": unicode,
-        "date": unicode,
+        "string": str,
+        "date": str,
     }
 
 
