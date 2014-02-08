@@ -61,6 +61,9 @@ def schema(obj):
             first = result[0]
 
             result = UnboundedList(result) if all(first == item for item in result) else result
+        else:
+            # An empty list? Replace it with an Any because empty lists don't exist in a schema
+            result = Any
 
         return result
     elif obj is None:
