@@ -66,12 +66,12 @@ class APIError(TMDBError):
         # Edit response
         if "status_message" in message:
             message["message"] = message["status_message"]
-            del json["status_message"]
+            del message["status_message"]
         if "status_code" in message:
             message["status"] = message["status_code"]
             del message["status_code"]
 
-        super(APIError, self).__init__(json)
+        super(APIError, self).__init__(message)
 
 
 class DoesNotExist(APIError):
